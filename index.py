@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from random import randint
+import numpy as np
 
 class Seminario:
 
@@ -11,6 +12,9 @@ class Seminario:
     QUANTIDADE_MINIMA_MINAS = 7
 
     def __init__(self, linhas, colunas):
+        self.pontos_encontrados = []
+        self.apresentou = False
+        self.quantidade_pontos_para_visitar = 0
         self.lista_visitados = []
         self.navio_linha = 0
         self.navio_coluna = 0
@@ -20,7 +24,6 @@ class Seminario:
         self.matriz_mapeada = []
         self.gerar_matriz()
         self.gerar_minas()
-        # self.apresentar_matriz()
         self.exibir()
 
     def gerar_matriz(self):
@@ -35,6 +38,7 @@ class Seminario:
 
     def gerar_minas(self):
         quantidade_minas = randint(self.QUANTIDADE_MAXIMA_MINAS, self.QUANTIDADE_MAXIMA_MINAS)
+        self.quantidade_pontos_para_visitar = (self.linhas * self.colunas) - quantidade_minas
         print(quantidade_minas)
         for i in range(0, quantidade_minas):
             posicao_linha = randint(0, len(self.matriz) - 1)
@@ -42,16 +46,31 @@ class Seminario:
             self.matriz[posicao_linha][posicao_coluna] = self.STATUS_MINA
 
     def mapear(self):
+        y = np.array(self.matriz_mapeada)
+        quantidade_elementos = np.count_nonzero(y == -1)
+        if(quantidade_elementos == 0):
+
+            if not self.apresentou:
+                self.apresentou = True
+                for i in range(0, self.linhas):
+                    for j in range(0, self.colunas):
+                        if self.matriz_mapeada[i][j] == self.STATUS_MINA:
+                            self.pontos_encontrados.append([i, j])
+                            print(f'{i}x{j}')
+            return
+
         linha = self.navio_linha
         coluna = self.navio_coluna
         if linha + 1 < len(self.matriz) and self.matriz_mapeada[linha + 1][coluna] == self.STATUS_PENDENTE_MAPEAMENTO:
             linha = linha + 1
         elif coluna + 1 < len(self.matriz[0]) and self.matriz_mapeada[linha][coluna + 1] == self.STATUS_PENDENTE_MAPEAMENTO:
             coluna = coluna + 1
-        elif  coluna - 1 < len(self.matriz[0]) and self.matriz_mapeada[linha][coluna - 1] == self.STATUS_PENDENTE_MAPEAMENTO:
+        elif self.navio_coluna - 1 >= 0 and coluna - 1 < len(self.matriz[0]) and self.matriz_mapeada[linha][coluna - 1] == self.STATUS_PENDENTE_MAPEAMENTO:
             coluna = coluna - 1
-        elif linha - 1 < len(self.matriz) and self.matriz_mapeada[linha - 1][coluna] == self.STATUS_PENDENTE_MAPEAMENTO:
+        elif self.navio_linha - 1 >= 0 and linha - 1 < len(self.matriz) and self.matriz_mapeada[linha - 1][coluna] == self.STATUS_PENDENTE_MAPEAMENTO:
             linha = linha - 1
+
+        self.descobrir_minas()
 
         if linha == self.navio_linha and coluna == self.navio_coluna:
             if len(self.lista_visitados) > 0:
@@ -70,9 +89,22 @@ class Seminario:
             self.navio_coluna = coluna
             self.navio_linha = linha
             self.lista_visitados.append([linha, coluna])
+        # self.apresentar_matriz(self.matriz_mapeada)
 
-        self.apresentar_matriz(self.matriz_mapeada)
-        
+    def descobrir_minas(self):
+        if self.navio_linha + 1 < len(self.matriz) and self.matriz[self.navio_linha + 1][self.navio_coluna] == self.STATUS_MINA:
+            self.matriz_mapeada[self.navio_linha + 1][self.navio_coluna] = self.STATUS_MINA
+
+        if self.navio_coluna + 1 < len(self.matriz[0]) and self.matriz[self.navio_linha][self.navio_coluna + 1] == self.STATUS_MINA:
+            self.matriz_mapeada[self.navio_linha][self.navio_coluna + 1] = self.STATUS_MINA
+
+        if self.navio_coluna - 1 >= 0 and self.navio_coluna - 1 < len(self.matriz[0]) and self.matriz[self.navio_linha][self.navio_coluna - 1] == self.STATUS_MINA:
+            self.matriz_mapeada[self.navio_linha][self.navio_coluna - 1] = self.STATUS_MINA
+
+        if self.navio_linha - 1 >= 0 and self.navio_linha - 1 < len(self.matriz) and self.matriz[self.navio_linha - 1][self.navio_coluna] == self.STATUS_MINA:
+            self.matriz_mapeada[self.navio_linha - 1][self.navio_coluna] = self.STATUS_MINA
+
+
     def exibir(self):
         fig, (ax1, ax2) = plt.subplots(1, 2)
         plt.show(block=False)
@@ -82,7 +114,7 @@ class Seminario:
 
             ax2.imshow(self.matriz_mapeada, 'Dark2')
             ax2.plot(self.navio_coluna, self.navio_linha, '*r', 'Bombas mapeadas', 5)
-            plt.pause(0.1)
+            plt.pause(0.01)
             self.mapear()
             ax1.cla()
             ax2.cla()
